@@ -1,9 +1,8 @@
 import config
-from functions import *
-from func import *
-pd.set_option('display.max_columns', None)  # 显示所有列
-pd.set_option('display.max_rows', None)  # 显示所有行
-pd.set_option('display.expand_frame_repr', False)  # 不换行
+from program.analyse import cal_cointegration
+from program.common import extract_col, cal_spread
+from program.function import *
+
 if __name__ == '__main__':
     data = pd.read_pickle(config.swap_path)
     symbol1 = 'OP-USDT'
@@ -17,12 +16,10 @@ if __name__ == '__main__':
     print(summary)
     spread = cal_spread(base, target, hedge_ratio=summary['hedge_ratio'])
     zscore_series = cal_zscore(spread)
-    signal_series = cal_signal(zscore_series, 2, -2)
-    position = cal_position(signal_series)
-    df = pd.DataFrame({
-        'zscore': zscore_series,
-        'signal': signal_series,
-        'pos': position
-    })
+    signal = cal_signal(zscore_series, 2, -2)
+    position = cal_position(signal)
+    invert = invert_position(position)
     # 打印结果
-    print(df)
+    signal['pos'] = position
+    signal['invert'] = invert
+    print(signal)

@@ -1,16 +1,13 @@
 import numpy as np
 import pandas as pd
 
-pd.set_option('display.max_columns', None)  # 显示所有列
-pd.set_option('display.max_rows', None)  # 显示所有行
-pd.set_option('display.expand_frame_repr', False)  # 不换行
-
 
 def cal_equity_curve(df: pd.DataFrame, slippage: float = 1 / 1000, c_rate: float = 5 / 10000,
                      leverage_rate: float = 1, min_amount: float = 0.01,
                      min_margin_ratio: float = 1 / 100, initial_cash: float = 1000) -> pd.DataFrame:
     """
-    :param df: kline
+    邢大资金曲线计算方法
+    :param df: 含 candle_begin_time open close pos
     :param slippage:  滑点 ，可以用百分比，也可以用固定值。建议币圈用百分比，股票用固定值
     :param c_rate:  手续费，commission fees，默认为万分之5。不同市场手续费的收取方法不同，对结果有影响。比如和股票就不一样。
     :param leverage_rate:  杠杆倍数
@@ -77,17 +74,17 @@ def cal_equity_curve(df: pd.DataFrame, slippage: float = 1 / 1000, c_rate: float
     df['net_value_min'] = df['cash'] + df['profit_min']
     # 计算保证金率
     df['margin_ratio'] = df['net_value_min'] / (min_amount * df['contract_num'] * df['price_min'])
-    # 计算是否爆仓
-    df.loc[df['margin_ratio'] <= (min_margin_ratio + c_rate), '是否爆仓'] = 1
+    # 计算爆仓
+    df.loc[df['margin_ratio'] <= (min_margin_ratio + c_rate), 'liquidate'] = 1
 
     # ===平仓时扣除手续费
     df.loc[close_pos_condition, 'net_value'] -= df['close_pos_fee']
     # 应对偶然情况：下一根K线开盘价格价格突变，在平仓的时候爆仓。此处处理有省略，不够精确。
-    df.loc[close_pos_condition & (df['net_value'] < 0), '是否爆仓'] = 1
+    df.loc[close_pos_condition & (df['net_value'] < 0), 'liquidate'] = 1
 
     # ===对爆仓进行处理
-    df['是否爆仓'] = df.groupby('start_time')['是否爆仓'].ffill()
-    df.loc[df['是否爆仓'] == 1, 'net_value'] = 0
+    df['liquidate'] = df.groupby('start_time')['liquidate'].ffill()
+    df.loc[df['liquidate'] == 1, 'net_value'] = 0
 
     # =====计算资金曲线
     df['equity_change'] = df['net_value'].pct_change(fill_method=None)
@@ -98,28 +95,7 @@ def cal_equity_curve(df: pd.DataFrame, slippage: float = 1 / 1000, c_rate: float
     print(df)
     # =====删除不必要的数据，并存储
     df.drop(['next_open', 'contract_num', 'open_pos_price', 'cash', 'close_pos_price', 'close_pos_fee',
-             'profit', 'net_value', 'price_min', 'profit_min', 'net_value_min', 'margin_ratio', '是否爆仓'],
+             'profit', 'net_value', 'price_min', 'profit_min', 'net_value_min', 'margin_ratio', 'liquidate'],
             axis=1, inplace=True)
 
     return df
-
-
-if __name__ == '__main__':
-    # 测试数据生成
-    test_data = {
-        'candle_begin_time': pd.date_range(start='2023-01-01 00:00:00', periods=10, freq='1h'),
-        'open': [100, 102, 101, 99, 98, 100, 97, 96, 94, 95],
-        'high': [102, 103, 102, 100, 99, 101, 98, 97, 95, 96],
-        'low': [99, 101, 100, 98, 97, 99, 96, 95, 93, 94],
-        'close': [101, 102, 100, 98, 99, 100, 97, 95, 94, 96],
-        'pos': [0, 1, 1, 0, -1, -1, 0, 1, 0, 0]  # 持仓信号
-    }
-
-    # 构建 DataFrame
-    df_test = pd.DataFrame(test_data)
-    print(df_test)
-    # 运行资金曲线计算函数
-    result_df = cal_equity_curve(df_test)
-
-    # 打印结果
-    print(result_df)

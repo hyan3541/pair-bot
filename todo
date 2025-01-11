@@ -1,19 +1,13 @@
-backtest画图
-close1 close2 spread
-zscore 2 -2 0
-signal entry exit
+task
+------
+协整计算
+批量协整计算
+计算价差、zscore
+计算signal、position
+计算出资金曲线
+计算策略绩效
+画图 close1 + close2 + signal
+画图 spread + zscore + signal
+画图 curve + dropdown
 
-backtest position计算
-backtest curve计算 net_val drop_down
 
-batch_coint
-每月coint
-每月交集
-
-copula 计算
-
-配对看板，查询
-
-继续看视频，规划后续
-
-记账的实盘，带止损

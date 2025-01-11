@@ -2,22 +2,20 @@ from typing import Dict
 
 import numpy as np
 import pandas as pd
-import statsmodels.api as sm
 from statsmodels.tsa.stattools import adfuller
 
+import statsmodels.api as sm
 
-def cal_zscore(spread: pd.Series, window: int = 24) -> pd.Series:
-    mean = spread.rolling(window=window).mean()
-    std = spread.rolling(window=window).std()
-    zscore = (spread - mean) / std
-    return zscore
-
-
-def cal_spread(base: pd.Series, target: pd.Series, hedge_ratio: float) -> pd.Series:
-    return target - base * hedge_ratio
+from program.common import cal_spread
 
 
 def cal_cointegration(base: pd.Series, target: pd.Series) -> Dict:
+    """
+    币对协整性判断
+    :param base: x
+    :param target: y
+    :return: summary, 是否协整、adf值、p_value值、对冲比率、线性回归截距
+    """
     # 回归分析
     # 添加常数项
     X = sm.add_constant(base)
@@ -31,7 +29,6 @@ def cal_cointegration(base: pd.Series, target: pd.Series) -> Dict:
     # 提取 ADF 检验结果，adf_statistic
     adf_statistic = adf_result[0]
     p_value = adf_result[1]
-    critical_values = adf_result[4]
     # 判断是否协整 (通常 p-value < 0.05 表示残差平稳，即协整)
     is_coint = p_value < 0.05
     # 返回结果
@@ -45,11 +42,21 @@ def cal_cointegration(base: pd.Series, target: pd.Series) -> Dict:
 
 
 def cal_zero_crossings(spread: pd.Series) -> int:
+    """
+    价差穿过0轴次数
+    :param spread: 价差
+    :return: 次数
+    """
     zero_crossings = len(np.where(np.diff(np.sign(spread)))[0])
     return zero_crossings
 
 
 def cal_half_life(spread: pd.Series) -> float:
+    """
+    半衰期计算，波峰波谷回到0轴的平均时间
+    :param spread:
+    :return:
+    """
     # 计算一阶差分
     delta_spread = spread.diff().dropna()
     # 构造回归模型
@@ -64,19 +71,12 @@ def cal_half_life(spread: pd.Series) -> float:
     return round(half_life, 5)
 
 
-def extract_col(df: pd.DataFrame, col: str, start_time, end_time) -> pd.Series | None:
-    # 过滤数据
-    filtered_df = df[(df['candle_begin_time'] >= start_time) & (df['candle_begin_time'] <= end_time)]
-    # 检查数据是否为空、开头或结尾是否缺失、是否有空值
-    if (filtered_df.empty or
-            filtered_df['candle_begin_time'].iloc[0] != start_time or
-            filtered_df['candle_begin_time'].iloc[-1] != end_time or
-            filtered_df[col].isna().any()):
-        return None
-    return filtered_df[col].reset_index(drop=True)
-
-
 def process_pair(args):
+    """
+    币对协整分析
+    :param args: symbol1, symbol2, base, target，两个价格序列
+    :return: 协整则返回 p_value、zero-crossing、半衰期，否则返回None
+    """
     symbol1, symbol2, base, target = args
     if base is None or target is None or base.size != target.size:
         print(f'--{symbol1} {symbol2} skip')
@@ -92,9 +92,3 @@ def process_pair(args):
         return summary
     print(f'--{symbol1} {symbol2} not coint')
     return None
-
-
-
-
-
-

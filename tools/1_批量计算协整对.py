@@ -6,13 +6,17 @@ import config
 import time
 import itertools
 
-from functions import extract_col, process_pair
+from program.analyse import process_pair
+from program.common import extract_col
 
 
 def get_cointegrated_pairs(all_df: Dict[str, pd.DataFrame],
                            start_time: pd.Timestamp, end_time: pd.Timestamp, n_jobs=-1, parallel=True):
     symbols = all_df.keys()
+    # 进行币对组合，排除自身组合
     combinations = list(itertools.combinations(symbols, 2))
+
+    # 构建入参列表
     arg_list = []
     all_df_range = {}
     for symbol, df in all_df.items():
@@ -23,8 +27,9 @@ def get_cointegrated_pairs(all_df: Dict[str, pd.DataFrame],
         target = all_df_range[symbol2]
         arg_list.append((symbol1, symbol2, base, target))
 
-    # 使用 joblib 并行处理
+    # 批量协整行分析
     if parallel:
+        # 使用 joblib 并行处理
         results = Parallel(n_jobs=n_jobs)(delayed(process_pair)(arg) for arg in arg_list)
     else:
         # 串行处理
@@ -35,7 +40,7 @@ def get_cointegrated_pairs(all_df: Dict[str, pd.DataFrame],
         df_coint = pd.DataFrame(coint_pair_list)
         # 按 zero_crossings 排序
         df_coint = df_coint.sort_values("zero_crossings", ascending=False)
-        # 保存到 CSV 文件
+        # 保存到 csv 文件
         df_coint.to_csv("coint_pairs.csv", index=False)
     else:
         df_coint = pd.DataFrame()
