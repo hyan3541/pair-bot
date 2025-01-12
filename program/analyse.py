@@ -3,6 +3,7 @@ from typing import Dict
 import numpy as np
 import pandas as pd
 from statsmodels.tsa.stattools import adfuller
+from scipy.stats import spearmanr
 
 import statsmodels.api as sm
 
@@ -81,6 +82,10 @@ def process_pair(args):
     if base is None or target is None or base.size != target.size:
         print(f'--{symbol1} {symbol2} skip')
         return None
+    corr, p_value = spearmanr(base, target)
+    if p_value > 0.05:
+        print(f'{symbol1} {symbol2} spearman p_value > 0.05')
+        return None
     summary = cal_cointegration(base, target)
     if summary['is_coint']:
         summary['base'] = symbol1
@@ -88,6 +93,7 @@ def process_pair(args):
         spread = cal_spread(base, target, summary['hedge_ratio'])
         summary['zero_crossings'] = cal_zero_crossings(spread)
         summary['half_life'] = cal_half_life(spread)
+        summary['spearman'] = round(corr, 3)
         print(f'{symbol1} {symbol2} coint')
         return summary
     print(f'--{symbol1} {symbol2} not coint')

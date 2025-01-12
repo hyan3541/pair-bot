@@ -6,8 +6,8 @@ task
 计算signal、position
 计算出资金曲线
 计算策略绩效
+画图 curve + dropdown
 画图 close1 + close2 + signal
 画图 spread + zscore + signal
-画图 curve + dropdown
 
 

@@ -30,3 +30,25 @@ def extract_col(df: pd.DataFrame, col: str, start_time, end_time) -> pd.Series |
             filtered_df[col].isna().any()):
         return None
     return filtered_df[col].reset_index(drop=True)
+
+
+def extract_cols(df: pd.DataFrame, cols: list[str], start_time, end_time) -> pd.Series | None:
+    """
+    从 df 提取一段 pd.Series，pd.Series计算比带着df计算快很多
+    :param df: dataframe
+    :param cols: 列名
+    :param start_time: 序列开始时间
+    :param end_time: 序列结束时间
+    :return: 提取后的序列，完整覆盖时间区间，没有空值
+    """
+    # 过滤数据
+    filtered_df = df[(df['candle_begin_time'] >= start_time) & (df['candle_begin_time'] <= end_time)]
+    # 检查数据是否为空、开头或结尾是否缺失、是否有空值
+    if (filtered_df.empty or
+            filtered_df['candle_begin_time'].iloc[0] != start_time or
+            filtered_df['candle_begin_time'].iloc[-1] != end_time):
+        return None
+    for col in cols:
+        if filtered_df[col].isna().any():
+            return None
+    return filtered_df[cols].reset_index(drop=True)

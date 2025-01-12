@@ -57,11 +57,6 @@ def cal_position(signals: pd.DataFrame):
     :param signals: 包含开多、平多、开空、平空信号的DataFrame
     :return: 仓位序列，1表示做多，-1表示做空，0表示空仓
     """
-    """
-        根据信号计算仓位，简洁且高效
-        :param signals: 包含开多、平多、开空、平空信号的DataFrame
-        :return: 仓位序列，1表示做多，-1表示做空，0表示空仓
-        """
     # 初始化仓位序列，初始状态为0（空仓）
     position = pd.Series(0, index=signals.index)
 
@@ -96,9 +91,17 @@ def cal_position(signals: pd.DataFrame):
         # 更新仓位
         position.iloc[i] = current_position
     # 仓位在出现信号后下根K线调整
-    return position.shift()
+    position = position.shift()
+    # 最后一根k线平仓
+    position.iloc[-1] = 0
+    return position
 
 
 def invert_position(position_series: pd.Series) -> pd.Series:
+    """
+    配对交易，对手合约的相反仓位
+    :param position_series: target的仓位
+    :return: base的仓位
+    """
     invert_series = np.where(position_series == 1, -1, np.where(position_series == -1, 1, 0))
     return pd.Series(invert_series)
