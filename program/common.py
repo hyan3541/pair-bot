@@ -1,7 +1,7 @@
 import pandas as pd
 
 
-def cal_spread(base: pd.Series, target: pd.Series, hedge_ratio: float) -> pd.Series:
+def cal_spread(base: pd.Series, target: pd.Series, hedge_ratio: pd.Series) -> pd.Series:
     """
     价差计算
     :param base: 价格序列 x

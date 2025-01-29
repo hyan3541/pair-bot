@@ -52,7 +52,7 @@ def get_cointegrated_pairs(all_df: Dict[str, pd.DataFrame],
 if __name__ == '__main__':
     data = pd.read_pickle(config.swap_path)
     begin = time.time()
-    start_date = '2024-10-01'
-    end_date = '2024-11-01'
+    start_date = '2024-05-01'
+    end_date = '2024-06-01'
     get_cointegrated_pairs(all_df=data, start_time=pd.Timestamp(start_date), end_time=pd.Timestamp(end_date))
     print(f'cost {time.time() - begin}')

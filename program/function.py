@@ -19,29 +19,39 @@ def cal_zscore(spread: pd.Series, window: int = 24) -> pd.Series:
     return zscore
 
 
-def cal_signal(zscore_series: pd.Series, upper: float, lower: float) -> pd.DataFrame:
+def cal_signal(zscore_series: pd.Series, coint: pd.Series, upper: float, lower: float) -> pd.DataFrame:
     """
-    交易信号计算
-    zscore 上穿0，平多
-    zscore 下穿0，平空
-    zscore 上穿上界，开空
-    zscore 下穿下界，开多
-    会返回4列，没有合为一列，因为平多和开空、或者平空和开多可能同时发生，两个信号共存，仓位反转
+    交易信号计算（含协整性条件过滤）
+
     :param zscore_series: zscore序列
+    :param coint: 协整性序列（True/False）
     :param upper: 上界
     :param lower: 下界
-    :return: df，包含开多、平多、开空、平空的时机
+    :return: DataFrame，包含开多、平多、开空、平空信号
     """
-    # 计算前一时刻的zscore值
+    # 计算前一时刻的zscore和协整性
     zscore_shifted = zscore_series.shift(1)
-    # 上穿0 -> exit_long
-    exit_long = (zscore_shifted <= 0) & (zscore_series > 0)
-    # 下穿0 -> exit_short
-    exit_short = (zscore_shifted >= 0) & (zscore_series < 0)
-    # 上穿1 -> short
-    short = (zscore_shifted <= upper) & (zscore_series > upper)
-    # 下穿-1 -> long
-    long = (zscore_shifted >= lower) & (zscore_series < lower)
+    coint_shifted = coint.shift(1)
+
+    # --- 平仓信号 ---
+    # 原有逻辑：zscore 上穿0平多，下穿0平空
+    exit_long_z = (zscore_shifted <= 0) & (zscore_series > 0)
+    exit_short_z = (zscore_shifted >= 0) & (zscore_series < 0)
+
+    # 新增逻辑：协整性失效时强制平仓（无论持仓方向）
+    coint_false = (coint_shifted == True) & (coint == False)  # 协整性从True→False
+    # coint_false = False  # 协整性从True→False
+    exit_long_coint = coint_false  # 协整失效触发平多
+    exit_short_coint = coint_false  # 协整失效触发平空
+
+    # 合并平仓信号（Z-score条件 或 协整失效）
+    exit_long = exit_long_z | exit_long_coint
+    exit_short = exit_short_z | exit_short_coint
+
+    # --- 开仓信号 ---
+    # 仅当协整性成立时允许开仓
+    long = (zscore_shifted >= lower) & (zscore_series < lower) & coint
+    short = (zscore_shifted <= upper) & (zscore_series > upper) & coint
 
     return pd.DataFrame({
         'long': long,

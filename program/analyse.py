@@ -32,13 +32,15 @@ def cal_cointegration(base: pd.Series, target: pd.Series) -> Dict:
     p_value = adf_result[1]
     # 判断是否协整 (通常 p-value < 0.05 表示残差平稳，即协整)
     is_coint = p_value < 0.05
+    corr, p_value = spearmanr(base, target)
     # 返回结果
     return {
         'is_coint': is_coint,
         'adf_statistic': adf_statistic,
         'p_value': round(p_value, 5),
         'hedge_ratio': round(model.params.iloc[1], 5),
-        'intercept': round(model.params.iloc[0], 5)
+        'intercept': round(model.params.iloc[0], 5),
+        'corr': corr
     }
 
 

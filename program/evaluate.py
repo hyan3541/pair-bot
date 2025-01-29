@@ -44,8 +44,10 @@ def cal_evaluate(df: pd.DataFrame):
     results.loc[key, '最大回撤结束时间'] = str(end_date)
     # ===统计每个周期
     results.loc[key, '盈利周期数'] = len(curve.loc[curve['本周期多空涨跌幅'] > 0])  # 盈利笔数
-    results.loc[key, '亏损周期数'] = len(curve.loc[curve['本周期多空涨跌幅'] <= 0])  # 亏损笔数
-    results.loc[key, '胜率'] = format(results.loc[key, '盈利周期数'] / (len(curve) + eps), '.2%')  # 胜率
+    results.loc[key, '亏损周期数'] = len(curve.loc[curve['本周期多空涨跌幅'] < 0])  # 亏损笔数
+    results.loc[key, '胜率'] = format(
+        results.loc[key, '盈利周期数'] / (results.loc[key, '盈利周期数'] + results.loc[key, '亏损周期数'] + eps),
+        '.2%')  # 胜率
     results.loc[key, '每周期平均收益'] = format(curve['本周期多空涨跌幅'].mean(), '.3%')  # 每笔交易平均盈亏
     if curve.loc[curve['本周期多空涨跌幅'] <= 0]['本周期多空涨跌幅'].mean() != 0:
         results.loc[key, '盈亏收益比'] = round(
